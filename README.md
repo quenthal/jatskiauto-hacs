@@ -51,9 +51,13 @@ Versions are `YEAR.MONTH.N`, where `N` is the release number within that month (
 
 ```bash
 uv venv --python 3.14
-uv pip install pytest-homeassistant-custom-component ruff
+uv pip install -r requirements_test.txt
 .venv/bin/ruff check .
 .venv/bin/python -m pytest
 ```
 
 Tests use made-up routes, stops and positions only.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
