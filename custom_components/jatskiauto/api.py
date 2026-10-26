@@ -10,7 +10,7 @@ from typing import Any
 
 import aiohttp
 
-from .const import DEFAULT_API_BASE, DEFAULT_AUTHOR
+from .const import DEFAULT_API_BASE, DEFAULT_AUTHOR, USER_AGENT
 
 WEEKDAY_FI = {
     "ma": "monday", "maanantai": "monday",
@@ -152,10 +152,13 @@ class PaikannuspalveluClient:
 
     async def _get(self, path: str, extra: dict[str, str] | None = None) -> Any:
         try:
-            async with self._session.get(f"{self._base}{path}", params={**self._params, **(extra or {})}, timeout=TIMEOUT) as resp:
-                if resp.status in (401, 403):
+            async with self._session.get(
+                f"{self._base}{path}", params={**self._params, **(extra or {})}, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT
+            ) as resp:
+                if resp.status == 401:
                     raise InvalidAuth
                 if resp.status != 200:
+                    # 403 is the firewall (e.g. a blocked User-Agent), not a rejected key.
                     raise CannotConnect(f"HTTP {resp.status} from {path}")
                 text = await resp.text()
         except (aiohttp.ClientError, TimeoutError) as err:

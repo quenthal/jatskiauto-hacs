@@ -8,6 +8,8 @@ DOMAIN: Final = "jatskiauto"
 DEFAULT_API_BASE: Final = "https://api.paikannuspalvelu.fi"
 # The public API identifies the caller with this author address.
 DEFAULT_AUTHOR: Final = "rest@paikannuspalvelu.fi"
+# The API's firewall answers 403 to Home Assistant's default User-Agent.
+USER_AGENT: Final = "jatskiauto-hacs (+https://github.com/quenthal/jatskiauto-hacs)"
 
 CONF_POSTAL_CODE: Final = "postal_code"
 CONF_ROUTE_ID: Final = "route_id"

@@ -59,11 +59,14 @@ async def test_client_sends_key_and_parses(hass, aioclient_mock):
     assert len(await client.routes()) == 3
     assert len(await client.stops("9001", date(2027, 6, 1))) == 4
     assert len(await client.devices()) == 1
-    url = aioclient_mock.mock_calls[0][1]
+    _, url, _, headers = aioclient_mock.mock_calls[0]
     assert url.query["data_key"] == DATA_KEY
+    # Home Assistant's default User-Agent is blocked by the API's firewall.
+    assert headers["User-Agent"].startswith("jatskiauto-hacs")
+    assert "homeassistant" not in headers["User-Agent"].lower()
 
 
-@pytest.mark.parametrize(("status", "error"), [(401, InvalidAuth), (403, InvalidAuth), (500, CannotConnect)])
+@pytest.mark.parametrize(("status", "error"), [(401, InvalidAuth), (403, CannotConnect), (500, CannotConnect)])
 async def test_client_errors(hass, aioclient_mock, status, error):
     aioclient_mock.get(f"{API}/v1/public/route/", status=status)
     client = PaikannuspalveluClient(async_get_clientsession(hass), DATA_KEY)

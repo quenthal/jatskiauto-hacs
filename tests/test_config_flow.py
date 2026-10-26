@@ -78,12 +78,12 @@ async def test_route_flow_lists_all_stops(hass, aioclient_mock):
 
 
 async def test_invalid_key_and_connection_error(hass, aioclient_mock):
-    aioclient_mock.get(f"{API}/v1/public/route/", status=403)
+    aioclient_mock.get(f"{API}/v1/public/route/", text="Incorrect request, required data missing!")
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_API_KEY: "bad"})
     assert result["errors"] == {"base": "invalid_auth"}
     aioclient_mock.clear_requests()
-    aioclient_mock.get(f"{API}/v1/public/route/", status=502)
+    aioclient_mock.get(f"{API}/v1/public/route/", status=403)
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_API_KEY: "bad"})
     assert result["errors"] == {"base": "cannot_connect"}
 
