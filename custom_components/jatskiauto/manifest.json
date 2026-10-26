@@ -1,10 +1,6 @@
 {
   "domain": "jatskiauto",
   "name": "Jätskiauto",
-  "categories": [
-    "local_services",
-    "presence_location.trackers"
-  ],
   "codeowners": [
     "@quenthal"
   ],
