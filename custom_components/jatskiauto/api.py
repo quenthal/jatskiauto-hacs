@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date
+import json
 import re
 from typing import Any
 
@@ -24,6 +25,7 @@ ROUTE_NAME_RE = re.compile(r"REITTI\s+([\w_]+)\s+(\w+)", re.IGNORECASE)
 TODAY_RE = re.compile(r"^tänään\s+klo:\s*(\d{1,2}:\d{2})$", re.IGNORECASE)
 DATED_RE = re.compile(r"^\w+\s+(\d{1,2})\.(\d{1,2})\.(\d{4})\s+klo:\s*(\d{1,2}:\d{2})$")
 TIMEOUT = aiohttp.ClientTimeout(total=30)
+REJECTED_PREFIX = "Incorrect request"
 
 
 class PaikannuspalveluError(Exception):
@@ -155,8 +157,15 @@ class PaikannuspalveluClient:
                     raise InvalidAuth
                 if resp.status != 200:
                     raise CannotConnect(f"HTTP {resp.status} from {path}")
-                return await resp.json(content_type=None)
-        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+                text = await resp.text()
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise CannotConnect(f"{type(err).__name__} from {path}") from err
+        # A missing or wrong data key is answered with HTTP 200 and this plain text.
+        if text.lstrip().startswith(REJECTED_PREFIX):
+            raise InvalidAuth
+        try:
+            return json.loads(text)
+        except ValueError as err:
             raise CannotConnect(f"{type(err).__name__} from {path}") from err
 
     async def routes(self) -> list[Route]:

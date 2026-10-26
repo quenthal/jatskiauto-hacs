@@ -76,3 +76,18 @@ async def test_client_rejects_non_list_route_response(hass, aioclient_mock):
     client = PaikannuspalveluClient(async_get_clientsession(hass), DATA_KEY)
     with pytest.raises(CannotConnect):
         await client.routes()
+
+
+async def test_rejected_key_is_plain_text_200(hass, aioclient_mock):
+    """The live API answers a wrong key with HTTP 200 and an error text."""
+    aioclient_mock.get(f"{API}/v1/public/route/", text="Incorrect request, required data missing!")
+    client = PaikannuspalveluClient(async_get_clientsession(hass), "wrong")
+    with pytest.raises(InvalidAuth):
+        await client.routes()
+
+
+async def test_other_non_json_is_connection_error(hass, aioclient_mock):
+    aioclient_mock.get(f"{API}/v1/public/route/", text="<html>maintenance</html>")
+    client = PaikannuspalveluClient(async_get_clientsession(hass), DATA_KEY)
+    with pytest.raises(CannotConnect):
+        await client.routes()
