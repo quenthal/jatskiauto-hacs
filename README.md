@@ -18,6 +18,10 @@ Manual: copy `custom_components/jatskiauto` into your Home Assistant `config/cus
 
 Requires Home Assistant 2026.10 or newer.
 
+## Data key
+
+The integration needs a data key for the Paikannuspalvelu API. **No key is included with this integration, and this project does not tell you where to obtain one.** Ask the API provider for access, and use the API according to its terms. A wrong or missing key is reported as "The data key was rejected".
+
 ## Setup
 
 *Settings → Devices & services → Add integration → Jätskiauto*
