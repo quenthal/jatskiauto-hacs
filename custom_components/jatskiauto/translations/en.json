@@ -1,0 +1,78 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Paikannuspalvelu",
+        "description": "Data key for the public Paikannuspalvelu API.",
+        "data": {
+          "api_key": "Data key"
+        }
+      },
+      "pick": {
+        "title": "Choose the stop",
+        "menu_options": {
+          "location": "Nearest stops to a location",
+          "route": "Pick a route and stop from the list"
+        }
+      },
+      "location": {
+        "title": "Location",
+        "description": "The stops nearest this point are listed. The postal code limits the search to routes serving that area.",
+        "data": {
+          "location": "Location",
+          "postal_code": "Postal code"
+        }
+      },
+      "route": {
+        "title": "Route",
+        "data": {
+          "route_file": "Route"
+        }
+      },
+      "stop": {
+        "title": "Stop",
+        "data": {
+          "stop": "Stop"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Paikannuspalvelu data key",
+        "description": "The data key was rejected. Enter a working one.",
+        "data": {
+          "api_key": "Data key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the Paikannuspalvelu API.",
+      "invalid_auth": "The data key was rejected.",
+      "no_routes_for_postal_code": "No route serves this postal code or its area.",
+      "no_stops": "No stops found."
+    },
+    "abort": {
+      "already_configured": "This stop is already followed.",
+      "no_routes": "The API returned no routes.",
+      "reauth_successful": "The data key was updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Jätskiauto options",
+        "data": {
+          "notify_minutes": "Notify when the truck can be here within",
+          "window_before_minutes": "Start live tracking before the scheduled time",
+          "window_after_minutes": "Keep live tracking after the scheduled time",
+          "record_traces": "Record GPS traces for troubleshooting"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_visit": {
+        "name": "Next scheduled visit"
+      }
+    }
+  }
+}

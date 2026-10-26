@@ -1,0 +1,78 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Paikannuspalvelu",
+        "description": "Paikannuspalvelun julkisen rajapinnan data key.",
+        "data": {
+          "api_key": "Data key"
+        }
+      },
+      "pick": {
+        "title": "Valitse pysäkki",
+        "menu_options": {
+          "location": "Lähimmät pysäkit sijainnista",
+          "route": "Valitse reitti ja pysäkki listalta"
+        }
+      },
+      "location": {
+        "title": "Sijainti",
+        "description": "Listalle tulevat tätä pistettä lähimmät pysäkit. Postinumero rajaa haun reitteihin, jotka ajavat alueella.",
+        "data": {
+          "location": "Sijainti",
+          "postal_code": "Postinumero"
+        }
+      },
+      "route": {
+        "title": "Reitti",
+        "data": {
+          "route_file": "Reitti"
+        }
+      },
+      "stop": {
+        "title": "Pysäkki",
+        "data": {
+          "stop": "Pysäkki"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Paikannuspalvelun data key",
+        "description": "Data key hylättiin. Anna toimiva avain.",
+        "data": {
+          "api_key": "Data key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Paikannuspalvelun rajapintaan ei saatu yhteyttä.",
+      "invalid_auth": "Data key hylättiin.",
+      "no_routes_for_postal_code": "Postinumerolla tai sen alueella ei ole reittejä.",
+      "no_stops": "Pysäkkejä ei löytynyt."
+    },
+    "abort": {
+      "already_configured": "Tätä pysäkkiä seurataan jo.",
+      "no_routes": "Rajapinta ei palauttanut reittejä.",
+      "reauth_successful": "Data key päivitettiin."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Jätskiauton asetukset",
+        "data": {
+          "notify_minutes": "Ilmoita, kun auto voi olla täällä viimeistään",
+          "window_before_minutes": "Aloita live-seuranta ennen aikataulua",
+          "window_after_minutes": "Jatka live-seurantaa aikataulun jälkeen",
+          "record_traces": "Tallenna GPS-jäljet vianetsintää varten"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_visit": {
+        "name": "Seuraava aikataulun mukainen käynti"
+      }
+    }
+  }
+}
