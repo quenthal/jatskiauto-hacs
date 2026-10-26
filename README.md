@@ -20,7 +20,11 @@ Requires Home Assistant 2026.10 or newer.
 
 ## Data key
 
-The integration needs a data key for the Paikannuspalvelu API. **No key is included with this integration, and this project does not tell you where to obtain one.** Ask the API provider for access, and use the API according to its terms. A wrong or missing key is reported as "The data key was rejected".
+The integration needs a data key for the Paikannuspalvelu API. The key is **not included** in this integration.
+
+Where to find one: the open-source hobby project [davwunder/jatskiauto](https://github.com/davwunder/jatskiauto) (MIT) uses the same API and has a key in [`scripts/fetch_routes.py`](https://github.com/davwunder/jatskiauto/blob/main/scripts/fetch_routes.py) (`DATA_KEY`), described there as the public API key from Paikannuspalvelu's documentation. The same API powers the public live map of the ice-cream trucks. We have not found that documentation ourselves, so use the key at your own risk and according to the provider's terms. If the key stops working, Home Assistant asks for a new one.
+
+**Suomeksi:** integraatio tarvitsee Paikannuspalvelun data keyn, jota ei toimiteta mukana. Avaimen löytää harrastajaprojektista [davwunder/jatskiauto](https://github.com/davwunder/jatskiauto): tiedostossa `scripts/fetch_routes.py` muuttuja `DATA_KEY`, jota siellä kuvataan Paikannuspalvelun julkiseksi avaimeksi. Käyttö omalla vastuulla.
 
 ## Setup
 
