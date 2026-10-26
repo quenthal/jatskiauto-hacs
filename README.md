@@ -1,3 +1,5 @@
+<img src="custom_components/jatskiauto/brand/icon.png" alt="" width="128" align="right">
+
 # Jätskiauto for Home Assistant
 
 > **Unofficial project.** This integration is not made, endorsed or supported by any ice-cream truck company, nor by Paikannuspalvelu. It is an independent hobby project that reads publicly available route, schedule and position data. All names and trademarks belong to their owners. Use at your own risk.
