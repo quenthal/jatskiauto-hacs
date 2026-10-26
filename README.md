@@ -43,6 +43,10 @@ Options: notification lead time, live tracking window around the scheduled time,
 
 Schedules are interpreted in Finnish time regardless of the Home Assistant time zone.
 
+## Versions
+
+Versions are `YEAR.MONTH.N`, where `N` is the release number within that month (for example `2026.10.1`, `2026.10.2`, `2026.11.1`). Releases are published as GitHub releases with the same tag.
+
 ## Development
 
 ```bash
