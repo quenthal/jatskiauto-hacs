@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.storage import Store
 
 from .const import CONF_ROUTE_FILE
 from .coordinator import JatskiautoConfigEntry, JatskiautoRuntimeData, RouteDataCoordinator, create_client
 from .geometry import async_fetch_geometry, async_load_geometry, stops_signature
-from .live import LiveCoordinator
+from .live import LiveCoordinator, visit_store_key
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.DEVICE_TRACKER, Platform.EVENT, Platform.SENSOR]
 
@@ -19,6 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: JatskiautoConfigEntry) -
     route = RouteDataCoordinator(hass, entry, client)
     await route.async_config_entry_first_refresh()
     live = LiveCoordinator(hass, entry, client, route)
+    await live.async_restore()
     entry.runtime_data = JatskiautoRuntimeData(client=client, route=route, live=live)
 
     route_file = entry.data[CONF_ROUTE_FILE]
@@ -54,3 +56,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: JatskiautoConfigEntry) -
 async def async_unload_entry(hass: HomeAssistant, entry: JatskiautoConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: JatskiautoConfigEntry) -> None:
+    """Forget the stored visit state of a removed entry."""
+    await Store(hass, 1, visit_store_key(entry.entry_id)).async_remove()

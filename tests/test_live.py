@@ -162,3 +162,31 @@ async def test_within_threshold_stays_on_when_estimate_moves_back(hass, aioclien
     await step(hass, freezer, 60)
     assert hass.states.get(sensor).state == "on"
     await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_restart_during_visit_does_not_repeat_notification(hass, aioclient_mock, freezer, hass_storage):
+    freezer.move_to("2027-06-04 16:09:00+03:00")
+    Truck(aioclient_mock)
+    entry = await setup(hass, aioclient_mock, {CONF_NOTIFY_MINUTES: 60})
+    event_id = entity(hass, entry, "event", "events")
+    events = []
+
+    def on_event(e):
+        new = e.data["new_state"]
+        # Like the blueprint: only fresh events count; a state restored at startup is not one.
+        if e.data["entity_id"] == event_id and new is not None and new.attributes.get("event_type"):
+            if abs((dt_util.utcnow() - dt_util.parse_datetime(new.state)).total_seconds()) < 10:
+                events.append(new.attributes["event_type"])
+
+    hass.bus.async_listen("state_changed", on_event)
+    await step(hass, freezer, 61)
+    assert events == ["tracking_started", "within_threshold"]
+    await step(hass, freezer, 30)  # visit state written; a restart takes a while
+    assert hass_storage[f"jatskiauto.visit.{entry.entry_id}"]["data"]["fired"] == ["tracking_started", "within_threshold"]
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    await step(hass, freezer, 60)
+    assert "within_threshold" not in events[2:] and "tracking_started" not in events[2:]
+    assert hass.states.get(entity(hass, entry, "binary_sensor", "within_threshold")).state == "on"
+    await hass.config_entries.async_unload(entry.entry_id)

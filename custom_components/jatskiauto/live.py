@@ -20,6 +20,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_point_in_utc_time
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -38,7 +39,7 @@ from .const import (
 )
 from .estimate import Estimate, estimate_arrival
 from .geometry import fill_legs
-from .tracker import Target, VisitTracker, build_route_model, parse_gps_timestamp, parse_hhmm, route_candidates
+from .tracker import TRACK_STATES, Target, VisitTracker, build_route_model, parse_gps_timestamp, parse_hhmm, route_candidates
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,6 +77,10 @@ EVENT_ARRIVED = "arrived"
 EVENT_PASSED = "passed"
 EVENT_SIGNAL_LOST = "signal_lost"
 EVENT_TYPES = [EVENT_TRACKING_STARTED, EVENT_REACHED_STOP, EVENT_WITHIN_THRESHOLD, EVENT_ARRIVED, EVENT_PASSED, EVENT_SIGNAL_LOST]
+
+
+def visit_store_key(entry_id: str) -> str:
+    return f"{DOMAIN}.visit.{entry_id}"
 
 
 def event_signal(entry_id: str) -> str:
@@ -170,6 +175,33 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
         self._wake: CALLBACK_TYPE | None = None
         self._last_position: Position | None = None
         self._device_name: str | None = None
+        self._reached_fired: set[int] = set()
+        # What was already announced for the current visit survives a restart.
+        self._store: Store[dict[str, Any]] = Store(hass, 1, visit_store_key(entry.entry_id))
+        self._restored: dict[str, Any] | None = None
+        self._saved: dict[str, Any] | None = None
+
+    async def async_restore(self) -> None:
+        self._restored = await self._store.async_load()
+
+    def _snapshot(self) -> dict[str, Any]:
+        tracker = self._tracker
+        return {
+            "visit": self._visit.scheduled.isoformat() if self._visit else None,
+            "fired": sorted(self._fired),
+            "reached": sorted(self._reached_fired),
+            "within_latched": self._within_latched,
+            "track_state": tracker.state if tracker else None,
+            "arrival_ts": tracker.arrival_ts if tracker else None,
+            "passed_ts": tracker.passed_ts if tracker else None,
+        }
+
+    @callback
+    def _save_if_changed(self) -> None:
+        snap = self._snapshot()
+        if snap != self._saved:
+            self._saved = snap
+            self._store.async_delay_save(lambda: snap, 1)
 
     # -- options ---------------------------------------------------------
     def _minutes(self, key: str, default: int) -> timedelta:
@@ -269,6 +301,7 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
             )
         state = self._state(now, visit, route.stops, route.stop_index, result)
         self._fire_events(state, result)
+        self._save_if_changed()
         await self._record(now, visit, devices, result, state)
 
         interval = self._poll_interval(state, result)
@@ -288,9 +321,21 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
         self._fired = set()
         self._visited_seen = 0
         self._within_latched = False
+        self._reached_fired = set()
         self._last_position = None
         self._device_name = None
+        restored, self._restored = self._restored, None
+        if restored and restored.get("visit") == visit.scheduled.isoformat() and self._tracker is not None:
+            # Home Assistant restarted during this visit: do not announce anything twice.
+            self._fired = set(restored.get("fired", []))
+            self._reached_fired = set(restored.get("reached", []))
+            self._within_latched = bool(restored.get("within_latched"))
+            if restored.get("track_state") in TRACK_STATES:
+                self._tracker.state_idx = TRACK_STATES.index(restored["track_state"])
+            self._tracker.arrival_ts = restored.get("arrival_ts")
+            self._tracker.passed_ts = restored.get("passed_ts")
         self._fire(EVENT_TRACKING_STARTED, {"scheduled": visit.scheduled.isoformat()})
+        self._save_if_changed()
 
     def _idle_state(self, status: str, visit: Visit) -> LiveState:
         est = Estimate(visit.scheduled, visit.scheduled, "schedule")
@@ -334,7 +379,8 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
         assert tracker is not None and state.visit is not None
         target_no = tracker.target_no
         for v in tracker.visited[self._visited_seen :]:
-            if v["stop_number"] < target_no:
+            if v["stop_number"] < target_no and v["stop_number"] not in self._reached_fired:
+                self._reached_fired.add(v["stop_number"])
                 self._fire(
                     EVENT_REACHED_STOP,
                     {"stop_number": v["stop_number"], "stops_remaining": target_no - v["stop_number"]},

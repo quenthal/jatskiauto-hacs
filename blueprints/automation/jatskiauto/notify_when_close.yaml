@@ -25,9 +25,14 @@ blueprint:
 triggers:
   - trigger: state
     entity_id: !input events_entity
+    not_from: unavailable
 conditions:
   - condition: template
-    value_template: "{{ trigger.to_state is not none and trigger.to_state.attributes.event_type == 'within_threshold' }}"
+    # The event type, and a fresh timestamp: a state restored at startup is not a new event.
+    value_template: >-
+      {{ trigger.to_state is not none
+         and trigger.to_state.attributes.event_type == 'within_threshold'
+         and (now() - as_datetime(trigger.to_state.state)).total_seconds() < 10 }}
 variables:
   minutes: "{{ trigger.to_state.attributes.minutes }}"
   eta_likely: "{{ trigger.to_state.attributes.eta_likely }}"

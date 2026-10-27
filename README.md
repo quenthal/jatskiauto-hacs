@@ -73,16 +73,20 @@ Schedules are interpreted in Finnish time regardless of the Home Assistant time 
 triggers:
   - trigger: state
     entity_id: event.jatskiauto_<stop>_events
+    not_from: unavailable
 conditions:
+  # The event type, and a fresh timestamp: the state restored at startup is not a new event.
   - condition: template
-    value_template: "{{ trigger.to_state.attributes.event_type == 'within_threshold' }}"
+    value_template: >-
+      {{ trigger.to_state.attributes.event_type == 'within_threshold'
+         and (now() - as_datetime(trigger.to_state.state)).total_seconds() < 10 }}
 actions:
   - action: notify.notify
     data:
       message: "🍦 The ice-cream truck can be here in {{ trigger.to_state.attributes.minutes }} min"
 ```
 
-Event attributes: `minutes`, `eta_earliest`, `eta_likely`, `stops_remaining`, `scheduled` (and `stop_number` for `reached_stop`, `arrival` for `arrived`).
+Each event fires once per visit, also across Home Assistant restarts. Event attributes: `minutes`, `eta_earliest`, `eta_likely`, `stops_remaining`, `scheduled` (and `stop_number` for `reached_stop`, `arrival` for `arrived`).
 
 ## Versions
 
