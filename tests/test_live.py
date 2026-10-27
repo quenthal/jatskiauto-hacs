@@ -191,3 +191,16 @@ async def test_restart_during_visit_does_not_repeat_notification(hass, aioclient
     assert hass.states.get(entity(hass, entry, "binary_sensor", "within_threshold")).state == "on"
     await hass.config_entries.async_unload(entry.entry_id)
 
+
+
+def test_pick_device_ignores_vehicles_far_from_the_route():
+    from custom_components.jatskiauto.api import Device
+    from custom_components.jatskiauto.live import pick_device
+    from custom_components.jatskiauto.tracker import build_route_model
+
+    route = {"stops": [{"lat": 60.0, "lon": lon} for lon in STOP_LON]}
+    model = build_route_model(route, [[[60.0, a], [60.0, b]] for a, b in zip(STOP_LON, STOP_LON[1:], strict=False)])
+    far = [Device(str(i), None, 61.0 + i / 100, 24.0, None, None, None) for i in range(300)]
+    near = Device("x", None, 60.0005, 25.005, None, None, None)
+    assert pick_device([*far, near], None, model) is near
+    assert pick_device(far, None, model) is None

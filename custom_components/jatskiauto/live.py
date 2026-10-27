@@ -146,8 +146,20 @@ def pick_device(devices: list[Device], tracked_id: str | None, model: dict[str, 
         for d in devices:
             if d.id == tracked_id:
                 return d
+    # Cheap box test first: the API lists every vehicle in the country, and
+    # matching each of them against the whole route would block the event loop.
+    if "bbox" not in model:
+        pts = model["points"]
+        pad_lat, pad_lon = ROUTE_MATCH_RADIUS_M / 111_000, ROUTE_MATCH_RADIUS_M / 55_000
+        model["bbox"] = (
+            min(p[0] for p in pts) - pad_lat, max(p[0] for p in pts) + pad_lat,
+            min(p[1] for p in pts) - pad_lon, max(p[1] for p in pts) + pad_lon,
+        )
+    lat_lo, lat_hi, lon_lo, lon_hi = model["bbox"]
     best, best_d = None, float("inf")
     for d in devices:
+        if not (lat_lo <= d.lat <= lat_hi and lon_lo <= d.lon <= lon_hi):
+            continue
         cands = route_candidates(d.lat, d.lon, model, ROUTE_MATCH_RADIUS_M)
         if cands:
             dist = min(c["distance_from_route_m"] for c in cands)

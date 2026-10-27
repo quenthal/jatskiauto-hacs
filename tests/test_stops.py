@@ -35,3 +35,14 @@ def test_nearest_stops_across_routes():
     assert [c.stop.name for c in found] == ["Keksitie 1", "Toinen reitti 5", "Alkupiste"]
     assert round(found[0].distance_m) == 47
     assert found[0].key == "9001|1"
+
+
+def test_resolve_stop_index_follows_the_name():
+    from custom_components.jatskiauto.api import Stop
+    from custom_components.jatskiauto.stops import resolve_stop_index
+
+    stops = [Stop(i, n, 60.0, 25.0, "00990") for i, n in enumerate(["A", "B", "C", "B"])]
+    assert resolve_stop_index(stops, 2, "C") == 2  # unchanged
+    assert resolve_stop_index(stops, 0, "C") == 2  # order changed
+    assert resolve_stop_index(stops, 2, "B") in (1, 3) and resolve_stop_index(stops, 3, "B") == 3  # nearest of duplicates
+    assert resolve_stop_index(stops, 1, "Z") is None  # gone

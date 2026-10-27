@@ -54,3 +54,16 @@ def nearest_stops(
     ]
     choices.sort(key=lambda c: c.distance_m)
     return choices[:count]
+
+
+def resolve_stop_index(stops: list[Stop], index: int, name: str) -> int | None:
+    """Find the followed stop again after the route's stop list has changed.
+
+    The stop order can change between seasons, so the stored index alone is not
+    enough: keep it while the name still matches, otherwise take the stop with
+    the same name nearest to the old position, or None if it is gone.
+    """
+    if 0 <= index < len(stops) and stops[index].name == name:
+        return index
+    same = [s.index for s in stops if s.name == name]
+    return min(same, key=lambda i: abs(i - index)) if same else None

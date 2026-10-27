@@ -66,6 +66,9 @@
           "record_traces": "Record GPS traces for troubleshooting"
         }
       }
+    },
+    "error": {
+      "notify_before_window": "The notification lead time cannot be longer than the time live tracking starts before the schedule."
     }
   },
   "entity": {
@@ -126,6 +129,12 @@
           }
         }
       }
+    }
+  },
+  "issues": {
+    "stop_missing": {
+      "title": "Followed ice-cream truck stop not found",
+      "description": "The stop {stop} is no longer on route {route}; the route may have changed for the new season. Remove this Jätskiauto entry and add it again with the new stop."
     }
   }
 }

@@ -46,3 +46,50 @@ async def test_rejected_key_starts_reauth(hass, aioclient_mock):
     assert entry.state is ConfigEntryState.SETUP_ERROR
     flows = hass.config_entries.flow.async_progress()
     assert [f["context"]["source"] for f in flows] == ["reauth"]
+
+
+async def test_stop_order_change_is_followed(hass, aioclient_mock, freezer):
+    """The season's stop list is reordered: the entry follows the stop by name."""
+    freezer.move_to("2027-06-01 12:00:00+03:00")
+    from .fake_api import STOPS_9001, mock_osrm
+
+    reordered = {"features": [dict(f, properties={**f["properties"], "sequence_on_route": 3 - f["properties"]["sequence_on_route"]}) for f in STOPS_9001["features"]]}
+    aioclient_mock.get(f"{API}/v1/public/route/search/", params={"routes": "9001"}, json=reordered)
+    aioclient_mock.get(f"{API}/v1/public/device/", json={"features": []})
+    mock_osrm(aioclient_mock)
+    entry = await setup(hass)
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.data[CONF_STOP_INDEX] == 2  # "Keksitie 1" was index 1, is now index 2
+    await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_missing_stop_raises_repair_issue(hass, aioclient_mock):
+    from homeassistant.helpers import issue_registry as ir
+
+    from .fake_api import mock_osrm
+
+    aioclient_mock.get(f"{API}/v1/public/route/search/", params={"routes": "9001"}, json={"features": [
+        {"geometry": {"coordinates": [25.0, 60.0]}, "properties": {"sequence_on_route": 0, "name_on_route": "Muu", "schedules": []}},
+        {"geometry": {"coordinates": [25.01, 60.0]}, "properties": {"sequence_on_route": 1, "name_on_route": "Toinen", "schedules": []}},
+    ]})
+    aioclient_mock.get(f"{API}/v1/public/device/", json={"features": []})
+    mock_osrm(aioclient_mock)
+    entry = await setup(hass)
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"stop_missing_{entry.entry_id}") is not None
+    status = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_status")
+    assert hass.states.get(status).state == "no_visits"
+    await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_republished_route_file_is_found_by_route_id(hass, aioclient_mock):
+    from .fake_api import ROUTES, STOPS_9001, mock_osrm
+
+    aioclient_mock.get(f"{API}/v1/public/route/search/", params={"routes": "9001"}, json={"features": []})
+    aioclient_mock.get(f"{API}/v1/public/route/search/", params={"routes": "9101"}, json=STOPS_9001)
+    aioclient_mock.get(f"{API}/v1/public/route/", json=[{**ROUTES[0], "file": 9101}, *ROUTES[1:]])
+    aioclient_mock.get(f"{API}/v1/public/device/", json={"features": []})
+    mock_osrm(aioclient_mock)
+    entry = await setup(hass)
+    assert entry.data[CONF_ROUTE_FILE] == "9101"
+    assert len(entry.runtime_data.route.data.stops) == 4
+    await hass.config_entries.async_unload(entry.entry_id)

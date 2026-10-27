@@ -120,3 +120,12 @@ async def test_reauth_updates_key(hass, aioclient_mock):
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_API_KEY: "new"})
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "reauth_successful"
     assert entry.data[CONF_API_KEY] == "new"
+
+
+async def test_options_notify_cannot_exceed_window(hass):
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_API_KEY: DATA_KEY})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    bad = {CONF_NOTIFY_MINUTES: 45, CONF_WINDOW_BEFORE: 30, CONF_WINDOW_AFTER: 120, CONF_RECORD_TRACES: False}
+    result = await hass.config_entries.options.async_configure(result["flow_id"], bad)
+    assert result["errors"] == {CONF_NOTIFY_MINUTES: "notify_before_window"}

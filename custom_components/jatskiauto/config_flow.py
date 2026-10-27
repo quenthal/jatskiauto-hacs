@@ -237,9 +237,14 @@ class JatskiautoOptionsFlow(OptionsFlowWithReload):
     """Notification threshold, tracking window and trace recording."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
-        opts = self.config_entry.options
+            # Notifications come from live tracking, which starts window_before ahead of the schedule.
+            if user_input[CONF_NOTIFY_MINUTES] > user_input[CONF_WINDOW_BEFORE]:
+                errors[CONF_NOTIFY_MINUTES] = "notify_before_window"
+            else:
+                return self.async_create_entry(data=user_input)
+        opts = {**self.config_entry.options, **(user_input or {})}
 
         def minutes(max_value: int) -> NumberSelector:
             return NumberSelector(NumberSelectorConfig(min=0, max=max_value, step=1, mode=NumberSelectorMode.BOX, unit_of_measurement="min"))
@@ -252,4 +257,4 @@ class JatskiautoOptionsFlow(OptionsFlowWithReload):
                 probatio.Required(CONF_RECORD_TRACES, default=opts.get(CONF_RECORD_TRACES, False)): BooleanSelector(),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)

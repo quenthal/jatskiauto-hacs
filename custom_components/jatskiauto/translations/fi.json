@@ -66,6 +66,9 @@
           "record_traces": "Tallenna GPS-jäljet vianetsintää varten"
         }
       }
+    },
+    "error": {
+      "notify_before_window": "Ilmoitusaika ei voi olla pidempi kuin aika, jolloin live-seuranta alkaa ennen aikataulua."
     }
   },
   "entity": {
@@ -126,6 +129,12 @@
           }
         }
       }
+    }
+  },
+  "issues": {
+    "stop_missing": {
+      "title": "Seurattua jätskiauton pysäkkiä ei löydy",
+      "description": "Pysäkki {stop} ei ole enää reitillä {route}; reitti on ehkä muuttunut uudelle kaudelle. Poista tämä Jätskiauto-merkintä ja lisää se uudelleen uudella pysäkillä."
     }
   }
 }
