@@ -35,7 +35,7 @@ Where to find one: the open-source hobby project [davwunder/jatskiauto](https://
    - from a location (defaults to your home) and postal code: the nearest stops are listed with distance, route, weekday and next visit, or
    - by picking a route and a stop from the full list.
 
-Each followed stop is its own entry; add the integration again to follow another stop. Your home location is only used for the search and is not stored.
+Each followed stop is its own entry; add the integration again to follow another stop. Stops tracked at the same time share one download of the vehicle list. Your home location is only used for the search and is not stored. If the route's stop list is reordered (it happens between seasons), the stop is found again by name; if it disappears, a repair notice asks you to choose it again.
 
 Options: notification lead time, live tracking window around the scheduled time, and optional GPS trace recording for troubleshooting.
 

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from homeassistant.const import Platform
+from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 
 from .const import CONF_ROUTE_FILE
 from .coordinator import JatskiautoConfigEntry, JatskiautoRuntimeData, RouteDataCoordinator, create_client
+from .feed import acquire_feed, release_feed
 from .geometry import async_fetch_geometry, async_load_geometry, stops_signature
 from .live import LiveCoordinator, visit_store_key
 
@@ -19,7 +20,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: JatskiautoConfigEntry) -
     client = create_client(hass, entry)
     route = RouteDataCoordinator(hass, entry, client)
     await route.async_config_entry_first_refresh()
-    live = LiveCoordinator(hass, entry, client, route)
+    data_key = entry.data[CONF_API_KEY]
+    feed = acquire_feed(hass, data_key, client)
+    entry.async_on_unload(lambda: release_feed(hass, data_key))
+    live = LiveCoordinator(hass, entry, client, route, feed)
     await live.async_restore()
     entry.runtime_data = JatskiautoRuntimeData(client=client, route=route, live=live)
 

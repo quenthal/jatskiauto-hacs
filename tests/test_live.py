@@ -204,3 +204,27 @@ def test_pick_device_ignores_vehicles_far_from_the_route():
     near = Device("x", None, 60.0005, 25.005, None, None, None)
     assert pick_device([*far, near], None, model) is near
     assert pick_device(far, None, model) is None
+
+
+async def test_two_stops_share_one_vehicle_list(hass, aioclient_mock, freezer):
+    """Overlapping windows of two followed stops use one download of the vehicle list."""
+    freezer.move_to("2027-06-04 16:09:00+03:00")
+    truck = Truck(aioclient_mock)
+    first = await setup(hass, aioclient_mock)
+    second = MockConfigEntry(domain=DOMAIN, unique_id="99_100_1_1", data={**DATA, CONF_STOP_INDEX: 1, "stop_name": "Keksitie 1"}, options={CONF_NOTIFY_MINUTES: 5})
+    second.add_to_hass(hass)
+    await hass.config_entries.async_setup(second.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert first.runtime_data.live.feed is second.runtime_data.live.feed
+
+    await step(hass, freezer, 61)  # both windows open at once (16:05 and 16:10)
+    refreshes = 0
+    for _ in range(6):
+        await step(hass, freezer, 10)
+        refreshes += 2
+    # Each coordinator refreshed, but the list was downloaded about once per poll round, not twice.
+    assert truck.calls <= refreshes // 2 + 3
+    await hass.config_entries.async_unload(first.entry_id)
+    assert hass.data["jatskiauto"]["feeds"]  # still used by the second entry
+    await hass.config_entries.async_unload(second.entry_id)
+    assert not hass.data["jatskiauto"]["feeds"]

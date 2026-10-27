@@ -38,6 +38,7 @@ from .const import (
     SCHEDULE_TZ,
 )
 from .estimate import Estimate, estimate_arrival
+from .feed import DeviceFeed
 from .geometry import fill_legs
 from .tracker import TRACK_STATES, Target, VisitTracker, build_route_model, parse_gps_timestamp, parse_hhmm, route_candidates
 
@@ -171,9 +172,10 @@ def pick_device(devices: list[Device], tracked_id: str | None, model: dict[str, 
 class LiveCoordinator(DataUpdateCoordinator[LiveState]):
     """Window scheduling, polling, tracking, estimate and events for one stop."""
 
-    def __init__(self, hass: HomeAssistant, entry, client: PaikannuspalveluClient, route_coordinator) -> None:
+    def __init__(self, hass: HomeAssistant, entry, client: PaikannuspalveluClient, route_coordinator, feed: DeviceFeed) -> None:
         super().__init__(hass, _LOGGER, config_entry=entry, name=f"{DOMAIN} live", update_interval=None, always_update=False)
         self.client = client
+        self.feed = feed
         self.route = route_coordinator
         self.legs: list | None = None
         self._model_key: tuple | None = None
@@ -294,7 +296,7 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
             return self._state(now, visit, route.stops, route.stop_index, None)
 
         try:
-            devices = await self.client.devices()
+            devices = await self.feed.devices()
         except InvalidAuth as err:
             raise ConfigEntryAuthFailed from err
         except CannotConnect as err:
