@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.components.device_tracker import SourceType, TrackerEntity
+from homeassistant.const import ATTR_GPS_ACCURACY, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -25,6 +26,9 @@ class TruckTracker(JatskiautoEntity[LiveCoordinator], TrackerEntity):
     """Last GPS position of the tracked truck; unknown outside the tracking window."""
 
     _attr_source_type = SourceType.GPS
+    # The live map shows the position, but no coordinates go to the history
+    # database: only the state (e.g. not_home) is recorded.
+    _unrecorded_attributes = frozenset({ATTR_LATITUDE, ATTR_LONGITUDE, ATTR_GPS_ACCURACY})
 
     def __init__(self, coordinator: LiveCoordinator) -> None:
         super().__init__(coordinator, "truck")

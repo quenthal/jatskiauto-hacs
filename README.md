@@ -50,7 +50,7 @@ Options: notification lead time, live tracking window around the scheduled time,
 | Stops remaining | Stops before the truck reaches yours. |
 | Arrived at | When the truck arrived at your stop. |
 | Can be here soon | On when the earliest arrival is within the lead time set in the options. |
-| Truck | The truck on the map while it is tracked (updated when it moves more than 30 m). |
+| Truck | The truck on the map while it is tracked (updated when it moves more than 30 m). Its coordinates are not written to the history database; disable the entity if you do not want the map at all. |
 | Events | `tracking_started`, `reached_stop`, `within_threshold`, `arrived`, `passed`, `signal_lost`. |
 
 ## How it works

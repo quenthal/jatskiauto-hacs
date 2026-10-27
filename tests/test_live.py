@@ -190,3 +190,4 @@ async def test_restart_during_visit_does_not_repeat_notification(hass, aioclient
     assert "within_threshold" not in events[2:] and "tracking_started" not in events[2:]
     assert hass.states.get(entity(hass, entry, "binary_sensor", "within_threshold")).state == "on"
     await hass.config_entries.async_unload(entry.entry_id)
+
