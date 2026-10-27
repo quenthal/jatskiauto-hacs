@@ -72,6 +72,59 @@
     "sensor": {
       "next_visit": {
         "name": "Seuraava aikataulun mukainen käynti"
+      },
+      "status": {
+        "name": "Tila",
+        "state": {
+          "no_visits": "Ei tulevia käyntejä",
+          "scheduled": "Aikataulussa",
+          "searching": "Etsitään autoa",
+          "on_route": "Reitillä",
+          "approaching_2_stops": "2 pysäkin päässä",
+          "approaching_1_stop": "1 pysäkin päässä",
+          "arrived": "Pysäkillä",
+          "passed": "Ohittanut",
+          "stale": "Sijainti vanhentunut"
+        }
+      },
+      "eta_likely": {
+        "name": "Arvioitu saapuminen"
+      },
+      "eta_earliest": {
+        "name": "Aikaisin mahdollinen saapuminen"
+      },
+      "stops_remaining": {
+        "name": "Pysäkkejä jäljellä"
+      },
+      "arrival": {
+        "name": "Saapui"
+      }
+    },
+    "binary_sensor": {
+      "within_threshold": {
+        "name": "Voi olla pian täällä"
+      }
+    },
+    "device_tracker": {
+      "truck": {
+        "name": "Jätskiauto"
+      }
+    },
+    "event": {
+      "events": {
+        "name": "Tapahtumat",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "tracking_started": "Seuranta alkoi",
+              "reached_stop": "Saapui pysäkille",
+              "within_threshold": "Voi olla pian täällä",
+              "arrived": "Saapui",
+              "passed": "Ohitti",
+              "signal_lost": "Sijainti katosi"
+            }
+          }
+        }
       }
     }
   }

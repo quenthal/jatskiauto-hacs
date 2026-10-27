@@ -72,6 +72,59 @@
     "sensor": {
       "next_visit": {
         "name": "Next scheduled visit"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "no_visits": "No upcoming visits",
+          "scheduled": "Scheduled",
+          "searching": "Looking for the truck",
+          "on_route": "On route",
+          "approaching_2_stops": "2 stops away",
+          "approaching_1_stop": "1 stop away",
+          "arrived": "At the stop",
+          "passed": "Passed",
+          "stale": "Position out of date"
+        }
+      },
+      "eta_likely": {
+        "name": "Arrival estimate"
+      },
+      "eta_earliest": {
+        "name": "Earliest arrival"
+      },
+      "stops_remaining": {
+        "name": "Stops remaining"
+      },
+      "arrival": {
+        "name": "Arrived at"
+      }
+    },
+    "binary_sensor": {
+      "within_threshold": {
+        "name": "Can be here soon"
+      }
+    },
+    "device_tracker": {
+      "truck": {
+        "name": "Truck"
+      }
+    },
+    "event": {
+      "events": {
+        "name": "Events",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "tracking_started": "Tracking started",
+              "reached_stop": "Reached a stop",
+              "within_threshold": "Can be here soon",
+              "arrived": "Arrived",
+              "passed": "Passed",
+              "signal_lost": "Position lost"
+            }
+          }
+        }
       }
     }
   }

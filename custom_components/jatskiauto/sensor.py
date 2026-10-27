@@ -2,49 +2,94 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_ROUTE_ID, CONF_STOP_INDEX, CONF_STOP_NAME, DOMAIN, SCHEDULE_TZ
+from .const import SCHEDULE_TZ
 from .coordinator import JatskiautoConfigEntry, RouteDataCoordinator
+from .entity import JatskiautoEntity
+from .live import STATUSES, LiveCoordinator, LiveState
 from .stops import next_visit
+
+
+def _minute(value: datetime | None) -> datetime | None:
+    """Timestamps are shown to the minute; this also keeps state writes rare."""
+    return value.replace(second=0, microsecond=0) if value else None
+
+
+@dataclass(frozen=True, kw_only=True)
+class LiveSensorDescription(SensorEntityDescription):
+    value_fn: Callable[[LiveState], Any]
+    attrs_fn: Callable[[LiveState], dict[str, Any]] | None = None
+
+
+def _status_attrs(s: LiveState) -> dict[str, Any]:
+    est = s.estimate
+    return {
+        "scheduled": s.visit.scheduled.isoformat() if s.visit else None,
+        "tracking_window_start": s.visit.start.isoformat() if s.visit else None,
+        "tracking_window_end": s.visit.end.isoformat() if s.visit else None,
+        "estimate_source": est.source if est else None,
+        "lateness_minutes": round((est.likely - s.visit.scheduled).total_seconds() / 60) if est and s.visit else None,
+        "vehicle": s.device_name,
+    }
+
+
+LIVE_SENSORS = [
+    LiveSensorDescription(
+        key="status", device_class=SensorDeviceClass.ENUM, options=STATUSES, value_fn=lambda s: s.status, attrs_fn=_status_attrs
+    ),
+    LiveSensorDescription(
+        key="eta_likely", device_class=SensorDeviceClass.TIMESTAMP, value_fn=lambda s: _minute(s.estimate.likely) if s.estimate else None
+    ),
+    LiveSensorDescription(
+        key="eta_earliest", device_class=SensorDeviceClass.TIMESTAMP, value_fn=lambda s: _minute(s.estimate.earliest) if s.estimate else None
+    ),
+    LiveSensorDescription(key="stops_remaining", value_fn=lambda s: s.stops_remaining),
+    LiveSensorDescription(key="arrival", device_class=SensorDeviceClass.TIMESTAMP, value_fn=lambda s: _minute(s.arrival)),
+]
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: JatskiautoConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
-    async_add_entities([NextVisitSensor(entry.runtime_data.route)])
+    data = entry.runtime_data
+    async_add_entities([NextVisitSensor(data.route), *(LiveSensor(data.live, d) for d in LIVE_SENSORS)])
 
 
-def device_info(entry: JatskiautoConfigEntry) -> DeviceInfo:
-    return DeviceInfo(
-        identifiers={(DOMAIN, entry.entry_id)},
-        name=f"Jätskiauto {entry.data[CONF_STOP_NAME]}",
-        manufacturer="Paikannuspalvelu",
-        model=f"Reitti {entry.data[CONF_ROUTE_ID]}, pysäkki {entry.data[CONF_STOP_INDEX] + 1}",
-        entry_type=DeviceEntryType.SERVICE,
-    )
+class LiveSensor(JatskiautoEntity[LiveCoordinator], SensorEntity):
+    """A value from the live state."""
+
+    entity_description: LiveSensorDescription
+
+    def __init__(self, coordinator: LiveCoordinator, description: LiveSensorDescription) -> None:
+        super().__init__(coordinator, description.key)
+        self.entity_description = description
+
+    @property
+    def native_value(self) -> Any:
+        return self.entity_description.value_fn(self.coordinator.data) if self.coordinator.data else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        fn = self.entity_description.attrs_fn
+        return fn(self.coordinator.data) if fn and self.coordinator.data else None
 
 
-class NextVisitSensor(CoordinatorEntity[RouteDataCoordinator], SensorEntity):
+class NextVisitSensor(JatskiautoEntity[RouteDataCoordinator], SensorEntity):
     """Next scheduled visit at the followed stop."""
 
-    _attr_has_entity_name = True
-    _attr_translation_key = "next_visit"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(self, coordinator: RouteDataCoordinator) -> None:
-        super().__init__(coordinator)
-        entry = coordinator.config_entry
-        self._attr_unique_id = f"{entry.entry_id}_next_visit"
-        self._attr_device_info = device_info(entry)
+        super().__init__(coordinator, "next_visit")
 
     @property
     def native_value(self) -> datetime | None:

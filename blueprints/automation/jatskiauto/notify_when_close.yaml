@@ -1,0 +1,37 @@
+blueprint:
+  name: Jätskiauto – notify when the truck can be here soon
+  description: >-
+    Runs your actions once per visit when the Jätskiauto integration says the
+    truck can be at your stop within the lead time set in the integration
+    options (earliest plausible arrival, so the notice comes rather early than
+    late). Unofficial integration, see the repository README.
+  domain: automation
+  source_url: https://github.com/quenthal/jatskiauto-hacs/blob/main/blueprints/automation/jatskiauto/notify_when_close.yaml
+  input:
+    events_entity:
+      name: Jätskiauto events entity
+      selector:
+        entity:
+          filter:
+            - integration: jatskiauto
+              domain: event
+    actions:
+      name: Actions
+      description: >-
+        For example a notify action. Variables: minutes (minutes until the
+        earliest arrival), eta_likely, eta_earliest, stops_remaining.
+      selector:
+        action: {}
+triggers:
+  - trigger: state
+    entity_id: !input events_entity
+conditions:
+  - condition: template
+    value_template: "{{ trigger.to_state is not none and trigger.to_state.attributes.event_type == 'within_threshold' }}"
+variables:
+  minutes: "{{ trigger.to_state.attributes.minutes }}"
+  eta_likely: "{{ trigger.to_state.attributes.eta_likely }}"
+  eta_earliest: "{{ trigger.to_state.attributes.eta_earliest }}"
+  stops_remaining: "{{ trigger.to_state.attributes.stops_remaining }}"
+actions: !input actions
+mode: single

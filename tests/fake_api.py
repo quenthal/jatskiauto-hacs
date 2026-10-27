@@ -1,5 +1,7 @@
 """Made-up Paikannuspalvelu responses (no real routes, stops or people)."""
 
+import re
+
 API = "https://api.paikannuspalvelu.fi"
 DATA_KEY = "test-key"
 
@@ -51,3 +53,20 @@ def mock_api(aioclient_mock, routes=ROUTES):
     aioclient_mock.get(f"{API}/v1/public/route/search/", params={"routes": "9001"}, json=STOPS_9001)
     aioclient_mock.get(f"{API}/v1/public/route/search/", params={"routes": "9002"}, json=STOPS_9002)
     aioclient_mock.get(f"{API}/v1/public/device/", json=DEVICES)
+    mock_osrm(aioclient_mock)
+
+
+OSRM_RE = re.compile(r"^https://router\.project-osrm\.org/route/v1/driving/([\d.]+),([\d.]+);([\d.]+),([\d.]+)")
+
+
+def mock_osrm(aioclient_mock):
+    """Every leg is a straight two-point road."""
+
+    async def leg(method, url, data):
+        from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
+
+        lon1, lat1, lon2, lat2 = (float(v) for v in OSRM_RE.match(str(url)).groups())
+        body = {"code": "Ok", "routes": [{"geometry": {"coordinates": [[lon1, lat1], [lon2, lat2]]}}]}
+        return AiohttpClientMockResponse(method, url, json=body)
+
+    aioclient_mock.get(OSRM_RE, side_effect=leg)

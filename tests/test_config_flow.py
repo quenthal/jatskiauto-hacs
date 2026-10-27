@@ -3,6 +3,7 @@
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.jatskiauto.const import (
@@ -19,6 +20,8 @@ from custom_components.jatskiauto.const import (
 from .fake_api import API, DATA_KEY, mock_api
 
 LOCATION = {"latitude": 60.0003, "longitude": 25.0030}
+
+pytestmark = pytest.mark.usefixtures("no_setup")
 
 
 async def start(hass, aioclient_mock):

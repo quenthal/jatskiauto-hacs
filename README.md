@@ -8,7 +8,7 @@
 
 A custom integration that follows the ice-cream truck on its route to the stop you choose, so that you know when to head out. Data comes from the public Paikannuspalvelu API.
 
-**Status:** early development. The first version picks the stop and shows the next scheduled visit. Live tracking, an ETA range and notifications are in progress.
+**Status:** live tracking, arrival estimate and notification events are in place but have not yet been tested against a real visit (the season starts in summer). Expect tuning.
 
 ## Installation
 
@@ -43,9 +43,46 @@ Options: notification lead time, live tracking window around the scheduled time,
 
 | Entity | Description |
 |---|---|
-| `sensor.…_next_scheduled_visit` | Next published visit at the stop (timestamp). Attributes: upcoming visits, stop number. |
+| Next scheduled visit | Next published visit at the stop. |
+| Status | `scheduled`, `searching`, `on_route`, `approaching_2_stops`, `approaching_1_stop`, `arrived`, `passed`, `stale`, `no_visits`. Attributes: scheduled time, tracking window, lateness, vehicle. |
+| Arrival estimate | Most likely arrival time. |
+| Earliest arrival | Earliest plausible arrival; notifications use this. |
+| Stops remaining | Stops before the truck reaches yours. |
+| Arrived at | When the truck arrived at your stop. |
+| Can be here soon | On when the earliest arrival is within the lead time set in the options. |
+| Truck | The truck on the map while it is tracked (updated when it moves more than 30 m). |
+| Events | `tracking_started`, `reached_stop`, `within_threshold`, `arrived`, `passed`, `signal_lost`. |
+
+## How it works
+
+- Schedules are read twice a day. Nothing else is polled between visits: live tracking runs only in a window around a scheduled visit (by default 60 min before to 150 min after), and stops once the truck has passed your stop.
+- The truck is matched to the route only near its previous position, and its status only moves forward during a visit, so a noisy GPS fix does not flip it back and forth.
+- The arrival estimate follows the truck's pace today (minutes per stop, selling included), not the schedule, because the truck is often late and rarely catches up. Before the truck is found, the schedule is used.
+- The road line between stops is fetched once per route from the public OSRM server and cached; straight lines are used until then.
+- Quiet by design: no log lines for normal polling, and only real changes are written to the history database.
 
 Schedules are interpreted in Finnish time regardless of the Home Assistant time zone.
+
+## Notifications
+
+`within_threshold` fires once per visit when the earliest plausible arrival is within the lead time (*Notify when the truck can be here within* in the options). Use the blueprint, or your own automation triggered by the *Events* entity:
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fquenthal%2Fjatskiauto-hacs%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fjatskiauto%2Fnotify_when_close.yaml)
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: event.jatskiauto_<stop>_events
+conditions:
+  - condition: template
+    value_template: "{{ trigger.to_state.attributes.event_type == 'within_threshold' }}"
+actions:
+  - action: notify.notify
+    data:
+      message: "🍦 The ice-cream truck can be here in {{ trigger.to_state.attributes.minutes }} min"
+```
+
+Event attributes: `minutes`, `eta_earliest`, `eta_likely`, `stops_remaining`, `scheduled` (and `stop_number` for `reached_stop`, `arrival` for `arrived`).
 
 ## Versions
 

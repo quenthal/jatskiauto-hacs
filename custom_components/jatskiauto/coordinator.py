@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY
@@ -16,6 +17,9 @@ from homeassistant.util import dt as dt_util
 
 from .api import CannotConnect, InvalidAuth, PaikannuspalveluClient, Stop
 from .const import CONF_ROUTE_FILE, CONF_STOP_INDEX, DOMAIN, SCHEDULE_TZ
+
+if TYPE_CHECKING:
+    from .live import LiveCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +35,7 @@ class JatskiautoRuntimeData:
 
     client: PaikannuspalveluClient
     route: RouteDataCoordinator
+    live: LiveCoordinator
 
 
 @dataclass
