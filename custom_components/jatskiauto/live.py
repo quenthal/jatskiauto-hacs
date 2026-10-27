@@ -166,6 +166,7 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
         self._visit: Visit | None = None
         self._fired: set[str] = set()
         self._visited_seen = 0
+        self._within_latched = False
         self._wake: CALLBACK_TYPE | None = None
         self._last_position: Position | None = None
         self._device_name: str | None = None
@@ -286,6 +287,7 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
         self._visit = visit
         self._fired = set()
         self._visited_seen = 0
+        self._within_latched = False
         self._last_position = None
         self._device_name = None
         self._fire(EVENT_TRACKING_STARTED, {"scheduled": visit.scheduled.isoformat()})
@@ -308,7 +310,11 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
         est = estimate_arrival(now, visit.scheduled, stop_times_on(stops, visit.scheduled.date()), index, track, tracker.visited)
         arrival = datetime.fromtimestamp(tracker.arrival_ts, SCHEDULE_TZ) if tracker.arrival_ts else None
         passed_at = datetime.fromtimestamp(tracker.passed_ts, SCHEDULE_TZ) if tracker.passed_ts else None
-        within = track_state not in ("arrived", "passed") and est.minutes_until(now) <= self.notify_minutes
+        # Latched like the event: once on, stays on until the truck has passed,
+        # even if the estimate moves back over the threshold.
+        if track_state == "arrived" or (track_state != "passed" and est.minutes_until(now) <= self.notify_minutes):
+            self._within_latched = True
+        within = self._within_latched and track_state != "passed"
         return LiveState(
             status=status,
             visit=visit,
@@ -318,7 +324,7 @@ class LiveCoordinator(DataUpdateCoordinator[LiveState]):
             passed_at=passed_at,
             position=self._last_position if track_state != "passed" else None,
             device_name=self._device_name,
-            within_threshold=within or track_state == "arrived",
+            within_threshold=within,
             debug={k: (result or {}).get(k) for k in ("match", "progress_m", "meters_until", "fix_age_seconds", "visited_stops")},
         )
 

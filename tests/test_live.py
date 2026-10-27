@@ -146,3 +146,19 @@ async def test_diagnostics_hide_key_stop_and_position(hass, aioclient_mock, free
     assert DATA_KEY not in text and "Keksitie" not in text and "99_100_1" not in text and "60.0" not in text
     assert diag["route"]["stop_count"] == 4 and diag["route"]["road_geometry_legs"] == 3
     await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_within_threshold_stays_on_when_estimate_moves_back(hass, aioclient_mock, freezer):
+    """The estimate may move later again; the binary sensor must not flap."""
+    freezer.move_to("2027-06-04 16:09:00+03:00")
+    truck = Truck(aioclient_mock)
+    entry = await setup(hass, aioclient_mock, {CONF_NOTIFY_MINUTES: 60})
+    await step(hass, freezer, 61)
+    sensor = entity(hass, entry, "binary_sensor", "within_threshold")
+    assert hass.states.get(sensor).state == "on"
+    hass.config_entries.async_update_entry(entry, options={CONF_NOTIFY_MINUTES: 0})
+    await hass.async_block_till_done()
+    truck.lon = STOP_LON[0]
+    await step(hass, freezer, 60)
+    assert hass.states.get(sensor).state == "on"
+    await hass.config_entries.async_unload(entry.entry_id)
